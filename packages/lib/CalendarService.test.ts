@@ -62,6 +62,8 @@ const createMockEvent = (overrides: Partial<CalendarServiceEvent> = {}): Calenda
 class TestCalendarService extends BaseCalendarService {
   constructor() {
     super(
+      // Cast via unknown since CredentialPayload is Prisma-driven; test only needs
+      // the fields actually used by BaseCalendarService (key, user).
       {
         id: 1,
         type: "caldav_calendar",
@@ -76,13 +78,14 @@ class TestCalendarService extends BaseCalendarService {
           password: "test",
           url: "https://caldav.example.com",
         },
-      },
+      } as unknown as import("@calcom/types/Credential").CredentialPayload,
       "caldav",
       "https://caldav.example.com"
     );
   }
 
-  async listCalendars() {
+  // event? parameter matches base class signature: listCalendars(event?: CalendarEvent)
+  async listCalendars(_event?: import("@calcom/types/Calendar").CalendarEvent): Promise<import("@calcom/types/Calendar").IntegrationCalendar[]> {
     return [
       {
         externalId: "https://caldav.example.com/calendar/",
@@ -90,7 +93,7 @@ class TestCalendarService extends BaseCalendarService {
         primary: true,
         readOnly: false,
         email: "test@example.com",
-        integrationName: "caldav",
+        integration: "caldav",
         credentialId: 1,
       },
     ];
@@ -127,6 +130,31 @@ describe("CalendarService - UID Consistency", () => {
 
     const icsCallArg = vi.mocked(createIcsEvent).mock.calls[0][0];
     expect(icsCallArg.uid).toBe(bookingUid);
+  });
+
+  it("should use event.iCalUID when provided, prioritising it over event.uid", async () => {
+    const service = new TestCalendarService();
+    const bookingUid = "booking-uid-123";
+    const bookingICalUID = "ical-uid-xyz@cal.com";
+    const mockIcsOutput = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:${bookingICalUID}\r\nDTSTART:20230615T150000Z\r\nDTEND:20230615T160000Z\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+
+    vi.mocked(createIcsEvent).mockReturnValue({
+      error: null as unknown as Error,
+      value: mockIcsOutput,
+    });
+
+    const event = createMockEvent({ uid: bookingUid, iCalUID: bookingICalUID });
+    const result = await service.createEvent(event, 1);
+
+    expect(result.uid).toBe(bookingICalUID);
+    expect(result.id).toBe(bookingICalUID);
+    expect(result.iCalUID).toBe(bookingICalUID);
+
+    const calledArg = vi.mocked(createCalendarObject).mock.calls[0][0];
+    expect(calledArg.filename).toBe(`${bookingICalUID}.ics`);
+
+    const icsCallArg = vi.mocked(createIcsEvent).mock.calls[0][0];
+    expect(icsCallArg.uid).toBe(bookingICalUID);
   });
 
   it("should generate a new UUID when event.uid is not provided", async () => {

@@ -427,7 +427,7 @@ export default abstract class BaseCalendarService implements Calendar {
   async createEvent(event: CalendarServiceEvent, credentialId: number): Promise<NewCalendarEventType> {
     try {
       const calendars = await this.listCalendars(event);
-      const uid = event.uid || uuidv4();
+      const uid = event.iCalUID || event.uid || uuidv4();
 
       // We create local ICS files
       const { error, value: iCalString } = createEvent({
@@ -458,7 +458,7 @@ export default abstract class BaseCalendarService implements Calendar {
       const iCalStringWithTimezone = injectVTimezone(iCalString, timezone, event.startTime, event.endTime);
 
       const mainHostDestinationCalendar = event.destinationCalendar
-        ? (event.destinationCalendar.find((cal) => cal.credentialId === credentialId) ??
+         ? (event.destinationCalendar.find((cal) => cal.credentialId === credentialId) ??
           event.destinationCalendar[0])
         : undefined;
 
@@ -495,6 +495,7 @@ export default abstract class BaseCalendarService implements Calendar {
         password: "",
         url: "",
         additionalInfo: {},
+        iCalUID: uid,
       };
     } catch (reason) {
       logger.error(reason);
@@ -566,6 +567,7 @@ export default abstract class BaseCalendarService implements Calendar {
               url: calendarEvent.url,
               additionalInfo:
                 typeof event.additionalInformation === "string" ? event.additionalInformation : {},
+              iCalUID: uid,
             };
           } else {
             this.log.error("Error: Status Code", response.status);
@@ -577,6 +579,7 @@ export default abstract class BaseCalendarService implements Calendar {
               url: typeof event.location === "string" ? event.location : "-1",
               additionalInfo:
                 typeof event.additionalInformation === "string" ? event.additionalInformation : {},
+              iCalUID: uid,
             };
           }
         })
