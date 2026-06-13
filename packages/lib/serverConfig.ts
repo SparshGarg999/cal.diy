@@ -5,6 +5,10 @@ import { isENVDev } from "@calcom/lib/env";
 
 import { getAdditionalEmailHeaders } from "./getAdditionalEmailHeaders";
 
+const EMAIL_SERVER_HOST = process.env.EMAIL_SERVER_HOST
+  ? process.env.EMAIL_SERVER_HOST.replace(/^[‘'’"]|[’'"”]$/g, "")
+  : undefined;
+
 function detectTransport(): SendmailTransport.Options | SMTPConnection.Options | string {
   if (process.env.RESEND_API_KEY) {
     const transport = {
@@ -24,7 +28,7 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
     return process.env.EMAIL_SERVER;
   }
 
-  if (process.env.EMAIL_SERVER_HOST) {
+  if (EMAIL_SERVER_HOST) {
     const port = parseInt(process.env.EMAIL_SERVER_PORT || "");
     const auth =
       process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
@@ -35,7 +39,7 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
         : undefined;
 
     const transport = {
-      host: process.env.EMAIL_SERVER_HOST,
+      host: EMAIL_SERVER_HOST,
       port,
       auth,
       secure: port === 465,
@@ -57,5 +61,5 @@ function detectTransport(): SendmailTransport.Options | SMTPConnection.Options |
 export const serverConfig = {
   transport: detectTransport(),
   from: process.env.EMAIL_FROM,
-  headers: getAdditionalEmailHeaders()[process.env.EMAIL_SERVER_HOST || ""] || undefined,
+  headers: getAdditionalEmailHeaders()[EMAIL_SERVER_HOST || ""] || undefined,
 };
