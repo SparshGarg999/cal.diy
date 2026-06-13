@@ -2,7 +2,9 @@
 
 ### Introduction
 
-This image can be found on DockerHub at [https://hub.docker.com/r/calcom/cal.diy](https://hub.docker.com/r/calcom/cal.diy). Note for ARM Users: Use the `-arm` suffix for pulling images. Example: `docker pull calcom/cal.diy:v5.6.19-arm`.
+Since Cal.diy is a community-maintained fork, pre-built Docker images are not published to Docker Hub. The Docker image must be built locally from source.
+
+Note for ARM/Apple Silicon Users: Docker will automatically build the image for your architecture.
 
 ### Contributing
 
@@ -32,28 +34,28 @@ Prepare your configuration: Rename .env.example to .env and then update .env
 cp .env.example .env
 ```
 
-(optional) Pre-Pull the images by running the following command
+(optional) Pull dependency images (PostgreSQL and Redis) by running the following command:
 
 ```bash
-docker compose pull
+docker compose pull database redis
 ```
 
-Start Cal.diy via docker compose (Most basic users, and for First Run) To run the complete stack, which includes a local Postgres database, Cal.diy web app, and Prisma Studio:
+Start Cal.diy via docker compose (Most basic users, and for First Run). To run the complete stack, which includes a local Postgres database, Redis, Cal.diy web app, and Prisma Studio:
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 To run Cal.diy web app and Prisma Studio against a remote database, ensure that DATABASE_URL is configured for an available database and run:
 
 ```bash
-docker compose up -d calcom studio
+docker compose up -d --build calcom studio
 ```
 
 To run only the Cal.diy web app, ensure that DATABASE_URL is configured for an available database and run:
 
 ```bash
-docker compose up -d calcom
+docker compose up -d --build calcom
 ```
 
 1. Most configurations can be left as-is, but for configuration options see Important Run-time variables below. Update the appropriate values in your .env file, then proceed.
@@ -67,16 +69,16 @@ Stop the Cal.diy stack
 docker compose down
 ```
 
-Pull the latest changes
+Pull the latest changes from the repository
 
 ```bash
-docker compose pull
+git pull origin main
 ```
 
-Re-start the Cal.diy stack
+Re-build and start the Cal.diy stack
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 1. Update environment variables as necessary.
